@@ -26,6 +26,10 @@ module.exports = {
     extensions: ['.js', '.vue', '.json'],
     alias: {
       '@': resolve('src'),
+      'assets': resolve('src/assets'),        // src/assets解析成assets
+      'network': resolve('src/network'),
+      'components': resolve('src/components'),
+      'common': resolve('src/common'),
     }
   },
   module: {
@@ -34,6 +38,10 @@ module.exports = {
         test: /\.vue$/,
         loader: 'vue-loader',
         options: vueLoaderConfig
+      },
+      {
+        test: /\.less$/,
+        loader: "style-loader!css-loader!less-loader"
       },
       {
         test: /\.js$/,
