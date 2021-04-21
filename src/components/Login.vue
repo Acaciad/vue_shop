@@ -25,7 +25,12 @@
     </div>
   </div>
 </template>
-
+<!--
+1.定义一个验证对象 loginFormRules
+2.绑定该对象 :rules="loginFormRules"
+3.在data 定义验证对象的规则,每一个属性都是一个验证规则 username password
+4. 不同表单e-from-item 通过添加 prop 指定不同验证规则来进行验证
+ -->
 <script>
 export default {
 
@@ -82,16 +87,10 @@ export default {
 }
 </script>
 
-<!--
-1.定义一个验证对象 loginFormRules
-2.绑定该对象 :rules="loginFormRules"
-3.在data 定义验证对象的规则,每一个属性都是一个验证规则 username password
-4. 不同表单e-from-item 通过添加 prop 指定不同验证规则来进行验证
- -->
+
 <style lang="less" scoped>//scoped 只在当前组件起作用
 .login_container{
-  height: 1080px;
-  width: 1920px;
+  height: 100%;
   background-color:rgb(247, 237, 134) ;
 }
 .login_box{
