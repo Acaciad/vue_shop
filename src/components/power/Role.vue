@@ -65,7 +65,7 @@
         <el-table-column label="角色描述" prop="roleDesc"></el-table-column>
         <el-table-column label="操作" width="300px">
           <template slot-scope="scope">
-            <el-button type="primary" icon="el-icon-edit" size="mini" >编辑</el-button>
+            <el-button type="primary" icon="el-icon-edit" size="mini" @click="showEditDialog(scope.row.id)">编辑</el-button>
             <el-button type="danger" icon="el-icon-delete" size="mini" @click="removeRoleById(scope.row.id)">删除</el-button>
             <el-button
               type="warning"
@@ -98,7 +98,46 @@
         <el-button type="primary" @click="allotRights">确 定</el-button>
       </span>
     </el-dialog>
-
+    <!-- 添加角色对话框 -->
+    <el-dialog title="添加角色" :visible.sync="AddRoleDialogVisible" width="40%" @close="addRoleDialogClosed">
+      <el-form
+        :model="addRoleForm"
+        ref="addRoleFormRef"
+        :rules="addRoleFormRules"
+        label-width="100px"
+      >
+        <el-form-item label="角色名称" prop="roleName">
+          <el-input v-model="addRoleForm.roleName"></el-input>
+        </el-form-item>
+        <el-form-item label="角色描述" prop="roleDesc">
+          <el-input v-model="addRoleForm.roleDesc"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="AddRoleDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="addRoles">确 定</el-button>
+      </span>
+    </el-dialog>
+    <!-- 编辑角色对话框 -->
+    <el-dialog title="编辑角色" :visible.sync="editRoleDialogVisible" width="40%" @close="addRoleDialogClosed">
+      <el-form
+        :model="editRoleForm"
+        ref="editRoleFormRef"
+        :rules="editRoleFormRules"
+        label-width="100px"
+      >
+        <el-form-item label="角色名称" prop="roleName">
+          <el-input v-model="editRoleForm.roleName"></el-input>
+        </el-form-item>
+        <el-form-item label="角色描述" prop="roleDesc">
+          <el-input v-model="editRoleForm.roleDesc"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="editRoleDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="editRoles">确 定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -119,7 +158,19 @@ export default {
       },
       //   默认选中节点ID值
       defKeys: [],
-
+      //   添加用户对话框
+      AddRoleDialogVisible: false,
+      // 添加角色表单
+      addRoleForm: {},
+      //   添加角色表单验证
+      addRoleFormRules: {
+        roleName: [
+          { required: true, message: '请输入角色名称', trigger: 'blur' }
+        ],
+        roleDesc: [
+          { required: true, message: '请输入角色描述', trigger: 'blur' }
+        ]
+      },
       //   编辑角色信息
       editRoleForm: {},
       editRoleDialogVisible: false,
@@ -169,7 +220,6 @@ export default {
       if (res.meta.status !== 200) {
         return this.$message.error('删除权限失败！')
       }
-      //更新数据
       role.children = res.data
       //   不建议使用
       // this.getRolesList()
@@ -192,7 +242,7 @@ export default {
     },
     // 通过递归 获取角色下三级权限的 id, 并保存到defKeys数组
     getLeafkeys (node, arr) {
-      // 当前node节点没有children属性，则是三级节点
+      // 没有children属性，则是三级节点
       if (!node.children) {
         return arr.push(node.id)
       }
@@ -202,7 +252,23 @@ export default {
     setRightDialogClosed () {
       this.defKeys = []
     },
-
+    // 添加角色对话框的关闭
+    addRoleDialogClosed () {
+      this.$refs.addRoleFormRef.resetFields()
+    },
+    // 添加角色
+    addRoles () {
+      this.$refs.addRoleFormRef.validate(async valid => {
+        if (!valid) return
+        const { data: res } = await this.$http.post('roles', this.addRoleForm)
+        if (res.meta.status !== 201) {
+          this.$message.error('添加角色失败！')
+        }
+        this.$message.success('添加角色成功！')
+        this.AddRoleDialogVisible = false
+        this.getRolesList()
+      })
+    },
     // 删除角色
     async removeRoleById (id) {
       const confirmResult = await this.$confirm(
@@ -222,17 +288,43 @@ export default {
       this.$message.success('删除用户成功！')
       this.getRolesList()
     },
-
-    // 角色分配权限
+    // 编辑角色
+    async showEditDialog (id) {
+      const { data: res } = await this.$http.get('roles/' + id)
+      if (res.meta.status !== 200) return this.$message.error('查询角色信息失败！')
+      this.editRoleForm = res.data
+      this.editRoleDialogVisible = true
+    },
+    editRoles () {
+      this.$refs.editRoleFormRef.validate(async valid => {
+        // console.log(valid)
+        // 表单预校验失败
+        if (!valid) return
+        const { data: res } = await this.$http.put(
+          'roles/' + this.editRoleForm.roleId,
+          {
+            roleName: this.editRoleForm.roleName,
+            roleDesc: this.editRoleForm.roleDesc
+          }
+        )
+        if (res.meta.status !== 200) {
+          this.$message.error('更新角色信息失败！')
+        }
+        // 隐藏编辑角色对话框
+        this.editRoleDialogVisible = false
+        this.$message.success('更新角色信息成功！')
+        this.getRolesList()
+      })
+    },
+    // 分配权限
     async allotRights (roleId) {
       // 获得当前选中和半选中的Id
-      // ... 是es6 中的展开运算符 方便数据在数组中整齐展示
       const keys = [
         ...this.$refs.treeRef.getCheckedKeys(),
         ...this.$refs.treeRef.getHalfCheckedKeys()
       ]
       // join() 方法用于把数组中的所有元素放入一个字符串
-      const idStr = keys.join(',')//以 , 分隔
+      const idStr = keys.join(',')
       const { data: res } = await this.$http.post(`roles/${this.roleId}/rights`, { rids: idStr })
       if (res.meta.status !== 200) { return this.$message.error('分配权限失败！') }
       this.$message.success('分配权限成功!')
